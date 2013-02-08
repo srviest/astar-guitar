@@ -8,6 +8,7 @@ Requirements
 
 * Python 2.7
 * PyMei (Python bindings of the C++ [http://github.com/ddmal/libmei|libmei] library)
+* networkx (Python library for graphs)
 
 Developer
 ---------
