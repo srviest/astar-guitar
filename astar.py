@@ -1,5 +1,5 @@
 '''
-Copyright (c) 2012 Gregory Burlet
+Copyright (c) 2013 Gregory Burlet
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -67,10 +67,10 @@ class ArrangeTabAstar(object):
 
         if output_path is not None:
             # write the modified document to disk
-            XmlExport.meiDocumentToFile(score.meidoc, output_path)
+            XmlExport.meiDocumentToFile(self.score.meidoc, output_path)
         else:
             # return a string of the MeiDocument
-            return XmlExport.meiDocumentToText(score.meidoc)
+            return XmlExport.meiDocumentToText(self.score.meidoc)
 
     def _gen_graph(self):
         dg = nx.DiGraph()
@@ -80,7 +80,7 @@ class ArrangeTabAstar(object):
 
         prev_node_layer = [1]
         node_num = 2
-        for e in score.score_events:
+        for e in self.score.score_events:
             # generate all possible fretboard combinations for this event
             candidates = self._get_candidates(e)
 
@@ -94,7 +94,7 @@ class ArrangeTabAstar(object):
                 edges = []
                 for prev_node in prev_node_layer:
                     # calculate edge weight
-                    w = self.biomechanical_burlet(dg.node[prev_node]['guitar_event'], dg.node[node_num]['guitar_event'])
+                    w = ArrangeTabAstar.biomechanical_burlet(dg.node[prev_node]['guitar_event'], dg.node[node_num]['guitar_event'])
                     edges.append((prev_node, node_num, w))
                 dg.add_weighted_edges_from(edges)
 
@@ -115,14 +115,19 @@ class ArrangeTabAstar(object):
 
         return dg
     
-    def biomechanical_burlet(self, n1, n2):
+    @staticmethod
+    def biomechanical_burlet(n1, n2):
         '''
         Evaluate the biomechanical cost of moving from one node to another.
+
+        PARAMETERS
+        ----------
+        n1: GuitarEvent
+        n2: following GuitarEvent
         '''        
 
         distance = 0            # biomechanical distance
-        w_distance = 4          # distance weight
-        
+        w_distance = 2          # distance weight
 
         if n1 != 'start':
             # calculate distance between nodes
@@ -130,11 +135,11 @@ class ArrangeTabAstar(object):
                 distance = n1.distance(n2)
 
         fret_penalty = 0
-        w_fret_penalty = 2      # fret penalty weight
+        w_fret_penalty = 1      # fret penalty weight
         fret_threshold = 7      # start incurring penalties above fret 7
 
         chord_distance = 0
-        w_chord_distance = 3
+        w_chord_distance = 2
 
         chord_string_distance = 0       # penalty for holes between string strums
         w_chord_string_distance = 1
@@ -214,8 +219,8 @@ def get_guitar_model(mei_path):
     return g
 
 if __name__ == '__main__':
-    mei_path = '/Users/gburlet/University/MA/astarguitar/samples/input/blue_oyster_cult_dont_fear_the_reaper.mei'
-    output_path = '/Users/gburlet/University/MA/astarguitar/samples/output/blue_oyster_cult_dont_fear_the_reaper.mei'
+    mei_path = '/Users/gburlet/University/MA/publications/ISMIR2013/robotaba/astarexample_input.mei'
+    output_path = '/Users/gburlet/University/MA/publications/ISMIR2013/robotaba/astarexample_output.mei'
 
     guitar = get_guitar_model(mei_path)
     

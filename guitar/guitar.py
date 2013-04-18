@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
-from darwintab.score.scoreevent import Note
+from astarguitar.score.scoreevent import Note
 from guitarevent import Pluck
 
 class InvalidTuning(Exception):
