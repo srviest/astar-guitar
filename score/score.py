@@ -43,13 +43,12 @@ class MeiScore(Score):
     def __init__(self):
         super(MeiScore, self).__init__()
 
-        from pymei import MeiDocument, MeiElement, XmlImport
-
     def parse_str(self, mei_str):
         '''
         Read an mei file from string and fill the score model
         '''
 
+        from pymei import XmlImport
         self.doc = XmlImport.documentFromText(mei_str)
         self.parse_input()
 
@@ -58,6 +57,7 @@ class MeiScore(Score):
         Read an mei file and fill the score model
         '''
 
+        from pymei import XmlImport
         self.doc = XmlImport.documentFromFile(str(mei_path))
         self.parse_input()
 
@@ -113,13 +113,12 @@ class MusicXMLScore(Score):
     def __init__(self):
         super(MusicXMLScore, self).__init__()
 
-        from lxml import etree
-
     def parse_str(self, xml_str):
         '''
         Read a MusicXML file from string and fill the score model
         '''
 
+        from lxml import etree
         self.doc = etree.fromstring(xml_str)
         self.parse_input()
 
@@ -128,7 +127,8 @@ class MusicXMLScore(Score):
         Read a MusicXML file and fill the score model
         '''
 
-        self.doc = etree.parse(mxml_file)
+        from lxml import etree
+        self.doc = etree.parse(xml_path)
         self.parse_input()
 
     def parse_input(self):
@@ -136,13 +136,16 @@ class MusicXMLScore(Score):
         Parse the score data into the internal data representation.
         '''
 
-        notes = doc.findall("part/measure/note")
+        notes = self.doc.findall("part/measure/note")
         # postprocess to arrange notes into chords
         notes_in_chord = []
         for i, n in enumerate(notes):
+            if n.find("rest") is not None:
+                continue
+
             note = self._handle_xml_note(n, i+1)
             if len(notes_in_chord):
-                if n.find("chord"):
+                if n.find("chord") is not None:
                     # append to chord
                     notes_in_chord.append(note)
                 else:
