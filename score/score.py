@@ -181,18 +181,11 @@ class MusicXMLScore(Score):
         '''
 
         pname = n.findtext("pitch/step")
+        octave = int(n.findtext("pitch/octave"))
+        note = Note(pname, octave, nid)
+
         alter = n.findtext("pitch/alter")
         if alter:
-            '''
-            Assume musescore is sane about applying accidentals and doesn't do
-            double sharps etc., or apply a flat to an F instead of just using an E for pitch
-            '''
-            alter = int(alter)
-            if int(alter) == 1:
-                pname += '#'
-            elif int(alter) == -1:
-                # convert flats to sharps
-                pname = pitch_names[pitch_names.index(pname)-1 % len(pitch_names)] + '#'
-        octave = int(n.findtext("pitch/octave"))
+            note = note + int(alter)
 
-        return Note(pname, octave, nid)
+        return note 
