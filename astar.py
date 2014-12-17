@@ -20,13 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
-from astarguitar.score.score import Score
-from astarguitar.score.scoreevent import Note, Chord
-from astarguitar.guitar.guitarevent import Pluck, Strum
-from astarguitar.guitar.guitar import Guitar
+from score.score import Score
+from score.scoreevent import Note, Chord
+from guitar.guitarevent import Pluck, Strum
+from guitar.guitar import Guitar
 import networkx as nx
-from pymei import XmlImport, XmlExport
-
 import itertools
 
 class ArrangeTabAstar(object):
@@ -197,6 +195,8 @@ def get_guitar_model(mei_path):
     Helper function to form the guitar model from 
     the mei file being parsed.
     '''
+
+    from pymei import XmlImport, XmlExport
 
     # get guitar parameters
     mei_doc = XmlImport.documentFromFile(mei_path)
