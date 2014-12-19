@@ -42,7 +42,7 @@ class Score(object):
         Mostly used for debugging.
         '''
 
-        for e in self.score_events[:20]:
+        for e in self.score_events:
             print e
 
 class MeiScore(Score):
@@ -201,51 +201,6 @@ class MusicXMLScore(Score):
                 if score_event:
                     self.score_events.append(score_event)
 
-        '''
-        # postprocess to arrange notes into chords and skip ties
-        notes_in_chord = []
-        last_note_tie = False   # flag for last note being a tie
-        for i, n in enumerate(notes):
-            # skip rests
-            if n.find("rest") is not None:
-                continue
-
-            # skip ties
-            ties = n.findall("tie")
-            if len(ties):
-                tie_types = [t.get("type") for t in ties]
-                if ("start" in tie_types and "stop" in tie_types):
-                    continue
-                elif len(ties) == 1 and "stop" in tie_types:
-                    if n.find("chord") is not None:
-                        continue
-                    else:
-                        last_note_tie = True
-                        continue
-
-            note = self._handle_xml_note(n, i+1)
-            if len(notes_in_chord):
-                if n.find("chord") is None or (n.find("chord") is not None and last_note_tie):
-                    if len(notes_in_chord) > 1:
-                        # chord is over
-                        chord = Chord(notes_in_chord)
-                        self.score_events.append(chord)
-                    else:
-                        # not a chord, it's a single note
-                        self.score_events.append(notes_in_chord[0])
-                    notes_in_chord = []
-
-            notes_in_chord.append(note)
-            last_note_tie = False
-
-        # deal with note/chord at end of file
-        if len(notes_in_chord) == 1:
-            self.score_events.append(notes_in_chord[0])
-        elif len(notes_in_chord) > 1:
-            chord = Chord(notes_in_chord)
-            self.score_events.append(chord)
-        '''
-
     def _handle_xml_note(self, n, nid):
         '''
         Helper function that takes a MusicXML note element
@@ -284,10 +239,4 @@ class MusicXMLScore(Score):
             # no tie, note just ends after duration
             note._tie_state = None
 
-        chord = n.find("chord")
-        if chord is not None:
-            note._chord_member = True
-        else:
-            note._chord_member = False
-        
         return note 
