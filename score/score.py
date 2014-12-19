@@ -35,6 +35,16 @@ class Score(object):
         self.score_events = []
         self.doc = None         # container for parsed music document
 
+    def engrave(self):
+        '''
+        Call after self.score_events has been populated from file
+        to print the internal data structure to the terminal.
+        Mostly used for debugging.
+        '''
+
+        for e in self.score_events[:20]:
+            print e
+
 class MeiScore(Score):
     '''
     Initialize an MEI score
@@ -136,19 +146,86 @@ class MusicXMLScore(Score):
         Parse the score data into the internal data representation.
         '''
 
+        def prune_notes(active_chord):
+            '''
+            Helper function that removes notes from the active chord
+            that are not in their onset phase, i.e., this function prunes
+            notes that are part of ties, etc.
+
+            PARAMETERS:
+            active_chord (list): list of note events
+
+            RETURNS:
+            score_event (scoreevent) a Note or a Chord depending on how much was pruned
+            '''
+
+            # discard active_notes that have ties = continue or stop
+            for j in range(len(active_chord)-1,-1,-1):
+                if active_chord[j]._tie_state == "continue" or active_chord[j]._tie_state == "stop":
+                    del active_chord[j]
+
+            score_event = None
+            if len(active_chord) == 1:
+                # one note remains, append to score events
+                score_event = active_chord[0]
+            elif len(active_chord) > 1:
+                # more than one note remains, append chord to score events
+                score_event = Chord(active_chord)
+            
+            return score_event
+
         notes = self.doc.findall("part/measure/note")
-        # postprocess to arrange notes into chords
-        notes_in_chord = []
+        active_notes = []
         for i, n in enumerate(notes):
+            # skip rests
             if n.find("rest") is not None:
                 continue
 
             note = self._handle_xml_note(n, i+1)
-            if len(notes_in_chord):
-                if n.find("chord") is not None:
-                    # append to chord
-                    notes_in_chord.append(note)
+            active_notes.append(note)
+
+            if i+1 < len(notes):
+                # look ahead to see if next note element is a member of a chord
+                if notes[i+1].find("chord") is None:
+                    # this is the last note in a chord or is a single note
+                    score_event = prune_notes(active_notes)
+                    if score_event:
+                        self.score_events.append(score_event)
+                        active_notes = []
                 else:
+                    # a chord starts or continues
+                    continue
+            else:
+                # deal with note/chord at the end of the score
+                score_event = prune_notes(active_notes)
+                if score_event:
+                    self.score_events.append(score_event)
+
+        '''
+        # postprocess to arrange notes into chords and skip ties
+        notes_in_chord = []
+        last_note_tie = False   # flag for last note being a tie
+        for i, n in enumerate(notes):
+            # skip rests
+            if n.find("rest") is not None:
+                continue
+
+            # skip ties
+            ties = n.findall("tie")
+            if len(ties):
+                tie_types = [t.get("type") for t in ties]
+                if ("start" in tie_types and "stop" in tie_types):
+                    continue
+                elif len(ties) == 1 and "stop" in tie_types:
+                    if n.find("chord") is not None:
+                        continue
+                    else:
+                        last_note_tie = True
+                        continue
+
+            note = self._handle_xml_note(n, i+1)
+            if len(notes_in_chord):
+                if n.find("chord") is None or (n.find("chord") is not None and last_note_tie):
                     if len(notes_in_chord) > 1:
                         # chord is over
                         chord = Chord(notes_in_chord)
@@ -159,6 +236,7 @@ class MusicXMLScore(Score):
                     notes_in_chord = []
 
             notes_in_chord.append(note)
+            last_note_tie = False
 
         # deal with note/chord at end of file
         if len(notes_in_chord) == 1:
@@ -166,6 +244,7 @@ class MusicXMLScore(Score):
         elif len(notes_in_chord) > 1:
             chord = Chord(notes_in_chord)
             self.score_events.append(chord)
+        '''
 
     def _handle_xml_note(self, n, nid):
         '''
@@ -188,4 +267,27 @@ class MusicXMLScore(Score):
         if alter:
             note = note + int(alter)
 
+        ties = n.findall("tie")
+        if len(ties):
+            tie_types = [t.get("type") for t in ties]
+            if len(ties) == 1:
+                if "start" in tie_types:
+                    # start tie
+                    note._tie_state = "start"
+                else:
+                    # end tie (note dies)
+                    note._tie_state = "stop"
+            else:
+                # continue tie
+                note._tie_state = "continue"
+        else:
+            # no tie, note just ends after duration
+            note._tie_state = None
+
+        chord = n.find("chord")
+        if chord is not None:
+            note._chord_member = True
+        else:
+            note._chord_member = False
+        
         return note 
