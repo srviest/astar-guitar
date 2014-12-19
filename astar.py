@@ -57,6 +57,8 @@ class ArrangeTabAstar(object):
                 for p, n in zip(guitar_event.plucks, score_event.notes):
                     plucks.append((n.id, p))
 
+        '''
+        TODO: make MusicXML output and MEI output possible
             # add the tablature data to the original mei document
             for p in plucks:
                 note = self.score.meidoc.getElementById(p[0])                
@@ -69,6 +71,7 @@ class ArrangeTabAstar(object):
         else:
             # return a string of the MeiDocument
             return XmlExport.meiDocumentToText(self.score.meidoc)
+        '''
 
     def _gen_graph(self):
         dg = nx.DiGraph()
@@ -78,7 +81,8 @@ class ArrangeTabAstar(object):
 
         prev_node_layer = [1]
         node_num = 2
-        for e in self.score.score_events:
+        num_nodes = len(self.score.score_events)
+        for i, e in enumerate(self.score.score_events):
             # generate all possible fretboard combinations for this event
             candidates = self._get_candidates(e)
 
@@ -104,12 +108,6 @@ class ArrangeTabAstar(object):
         dg.add_node(node_num, guitar_event='end')
         edges = [(prev_node, node_num, 0) for prev_node in prev_node_layer]
         dg.add_weighted_edges_from(edges)
-
-        # debug: display draph
-        # import matplotlib.pyplot as plt
-        # nx.draw_networkx(dg)
-        # plt.show()
-        # print dg.nodes(data=True)
 
         return dg
     
@@ -170,7 +168,6 @@ class ArrangeTabAstar(object):
         '''
 
         candidates = []
-
         if isinstance(score_event, Note):
             candidates = self.guitar.get_candidate_frets(score_event)
         elif isinstance(score_event, Chord):
@@ -184,9 +181,14 @@ class ArrangeTabAstar(object):
             for c in pluck_combinations:
                 active_strings = [p.string for p in c]
                 if len(active_strings) == len(set(active_strings)):
-                    # this combination of notes is good
-                    # convert back to internal data format (Strum)
-                    candidates.append(Strum(c))
+                    frets = [p.fret for p in c if p.fret > 0]
+                    if len(frets):
+                        if max(frets) - min(frets) <= 7:
+                            # this combination of notes is good
+                            # convert back to internal data format (Strum)
+                            candidates.append(Strum(c))
+                    else:
+                        candidates.append(Strum(c))
 
         return candidates
 
