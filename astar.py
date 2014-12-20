@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 '''
 
+import os
 from score.score import Score
 from score.scoreevent import Note, Chord
 from guitar.guitarevent import Pluck, Strum
@@ -45,6 +46,7 @@ class ArrangeTabAstar(object):
         # remove start and end nodes
         del path[0], path[-1]
 
+        strums = []
         for n in path:
             n = self.graph.node[n]
             guitar_event = n['guitar_event']
@@ -54,24 +56,52 @@ class ArrangeTabAstar(object):
             if isinstance(guitar_event, Pluck):
                 plucks.append((score_event.id, guitar_event))
             else:
-                for p, n in zip(guitar_event.plucks, score_event.notes):
-                    plucks.append((n.id, p))
+                for pluck, note in zip(guitar_event.plucks, score_event.notes):
+                    plucks.append((note.id, pluck))
+            strums.append(plucks)
 
-        '''
-        TODO: make MusicXML output and MEI output possible
+        # figure out of this is an MEI or a MusicXML file
+        ext = os.path.splitext(output_path)[-1]
+        if ext == ".mei":
+            from pymei import XmlExport
+
             # add the tablature data to the original mei document
-            for p in plucks:
-                note = self.score.meidoc.getElementById(p[0])                
-                note.addAttribute('tab.string', str(p[1].string+1))
-                note.addAttribute('tab.fret', str(p[1].fret))
+            for s in strums:
+                for p in s:
+                    note = self.score.doc.getElementById(p[0])                
+                    note.addAttribute('tab.string', str(p[1].string+1))
+                    note.addAttribute('tab.fret', str(p[1].fret))
 
-        if output_path is not None:
-            # write the modified document to disk
-            XmlExport.meiDocumentToFile(self.score.meidoc, output_path)
-        else:
-            # return a string of the MeiDocument
-            return XmlExport.meiDocumentToText(self.score.meidoc)
-        '''
+            if output_path is not None:
+                # write the modified document to disk
+                XmlExport.meiDocumentToFile(self.score.mei, output_path)
+            else:
+                # return a string of the MeiDocument
+                return XmlExport.meiDocumentToText(self.score.mei)
+        elif ext == ".xml":
+            from lxml import etree
+
+            # add the tablature data to the original MusicXML document
+            for s in strums:
+                for p in s:
+                    try:
+                        note = self.score.doc.xpath("part/measure/note[@id='%s']" % p[0])[0]
+                    except IndexError:
+                        raise ValueError("Oh snap! We couldn't find note id=%s in the MusicXML document" % p[0])
+
+                    technical = etree.SubElement(note, "technical")
+                    string = etree.SubElement(technical, "string")
+                    string.text = str(p[1].string+1)
+                    fret = etree.SubElement(technical, "fret")
+                    fret.text = str(p[1].fret)
+
+            if output_path is not None:
+                # write the modified document to disk
+                with open(output_path, 'w') as f:
+                    self.score.doc.write(f)
+            else:
+                # return a string of the MusicXML document
+                return self.score.doc.tostring()
 
     def _gen_graph(self):
         dg = nx.DiGraph()

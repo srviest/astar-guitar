@@ -165,7 +165,7 @@ class Note(ScoreEvent):
         return self.__gt__(other_note) or self.__eq__(other_note)
 
     def __str__(self):
-        return "<note: %s%d>" % (self.pname, self.oct)
+        return "<note@%s: %s%d>" % (str(self.id), self.pname, self.oct)
 
     def __repr__(self):
         return self.__str__()

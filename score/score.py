@@ -177,11 +177,14 @@ class MusicXMLScore(Score):
         notes = self.doc.findall("part/measure/note")
         active_notes = []
         for i, n in enumerate(notes):
+            # append id to note elements so they can be retrieved later
+            n.set("id", str(i+1))
+
             # skip rests
             if n.find("rest") is not None:
                 continue
 
-            note = self._handle_xml_note(n, i+1)
+            note = self._handle_xml_note(n, str(i+1))
             active_notes.append(note)
 
             if i+1 < len(notes):
