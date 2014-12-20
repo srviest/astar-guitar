@@ -115,6 +115,8 @@ class ArrangeTabAstar(object):
         for i, e in enumerate(self.score.score_events):
             # generate all possible fretboard combinations for this event
             candidates = self._get_candidates(e)
+            if len(candidates) <= 0:
+                continue
 
             node_layer = []
             for c in candidates:

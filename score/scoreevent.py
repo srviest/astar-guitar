@@ -123,7 +123,7 @@ class Note(ScoreEvent):
         if step < 0:
             step_up = False
 
-        note = Note(self.pname, self.oct)
+        note = Note(self.pname, self.oct, self.id)
         p_ind = Note.pitch_classes.index(self.pname)
         new_p_ind = (p_ind + step) % num_chroma
 
