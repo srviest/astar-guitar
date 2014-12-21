@@ -89,11 +89,18 @@ class ArrangeTabAstar(object):
                     except IndexError:
                         raise ValueError("Oh snap! We couldn't find note id=%s in the MusicXML document" % p[0])
 
-                    technical = etree.SubElement(note, "technical")
+                    # add string and fret information to note
+                    notations = note.find("notations")
+                    if notations is None:
+                        notations = etree.SubElement(note, "notations")
+
+                    technical = etree.SubElement(notations, "technical")
                     string = etree.SubElement(technical, "string")
                     string.text = str(p[1].string+1)
                     fret = etree.SubElement(technical, "fret")
                     fret.text = str(p[1].fret)
+
+            self.score.discard_nids()
 
             if output_path is not None:
                 # write the modified document to disk
@@ -101,7 +108,7 @@ class ArrangeTabAstar(object):
                     self.score.doc.write(f)
             else:
                 # return a string of the MusicXML document
-                return self.score.doc.tostring()
+                return etree.tostring(self.score.doc)
 
     def _gen_graph(self):
         dg = nx.DiGraph()
@@ -113,9 +120,13 @@ class ArrangeTabAstar(object):
         node_num = 2
         num_nodes = len(self.score.score_events)
         for i, e in enumerate(self.score.score_events):
+            # make sure chord has a polyphony <= 6
+            if isinstance(e, Chord) and len(e.notes) > 6:
+                e.notes = enotes[:6]
+
             # generate all possible fretboard combinations for this event
             candidates = self._get_candidates(e)
-            if len(candidates) <= 0:
+            if len(candidates) == 0:
                 continue
 
             node_layer = []

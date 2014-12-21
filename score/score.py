@@ -243,3 +243,14 @@ class MusicXMLScore(Score):
             note._tie_state = None
 
         return note 
+
+    def discard_nids(self):
+        '''
+        Call this to clean up appended id attributes to note elements
+        in the MusicXML document.
+        '''
+
+        notes = self.doc.findall("part/measure/note")
+        for n in notes:
+            del n.attrib["id"]
+            
