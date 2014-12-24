@@ -257,37 +257,9 @@ class MusicXMLScore(Score):
         '''
         Call this to clean up MusicXML file by:
         1. discarding id attribute on note elements that have been used for tablature arrangement
-        2. filling in tablature data on tied notes
         '''
-
-        from lxml import etree
 
         notes = self.doc.findall("part/measure/note")
         for i, n in enumerate(notes):
             # 1. discard note id attributes
             del n.attrib["id"]
-
-            # skip rests
-            if n.find("rest") is not None:
-                continue
-
-            # 2. append tablature data on tied notes
-            note = self._handle_xml_note(n, None)
-            if note._tie_state == "start":
-                # forward search notes to fill in tablature data to ending tie 
-                for n_next in notes[i+1:]:
-                    next_note = self._handle_xml_note(n_next, None)
-                    if next_note == note:
-                        # append tablature information to the xml for this note element
-                        notations = n_next.find("notations")
-                        if notations is None:
-                            notations = etree.SubElement(n_next, "notations")
-
-                        technical = etree.SubElement(notations, "technical")
-                        string = etree.SubElement(technical, "string")
-                        string.text = str(note.string)
-                        fret = etree.SubElement(technical, "fret")
-                        fret.text = str(note.fret)
-
-                        if next_note._tie_state == "stop":
-                            break
