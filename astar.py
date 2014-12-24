@@ -100,7 +100,20 @@ class ArrangeTabAstar(object):
                     fret = etree.SubElement(technical, "fret")
                     fret.text = str(p[1].fret)
 
-            self.score.discard_nids()
+            # append staff-details so GuitarPro can read the string/fret data
+            m1_attrs = self.score.doc.xpath("part/measure[@number='1']/attributes")[0]
+            staff_details = etree.SubElement(m1_attrs, "staff-details")
+            staff_lines = etree.SubElement(staff_details, "staff-lines")
+            staff_lines.text = str(len(self.guitar.strings))
+            for i, n in enumerate(reversed(self.guitar.strings)):
+                staff_tuning = etree.SubElement(staff_details, "staff-tuning")
+                staff_tuning.set("line", str(i+1))
+                tuning_step = etree.SubElement(staff_tuning, "tuning-step")
+                tuning_step.text = n.pname
+                tuning_octave = etree.SubElement(staff_tuning, "tuning-octave")
+                tuning_octave.text = str(n.oct)
+
+            self.score.cleanup()
 
             if output_path is not None:
                 # write the modified document to disk
